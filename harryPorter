@@ -1,0 +1,45 @@
+const express = require('express');
+require('dotenv').config();
+const axios = require('axios');
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+app.get('/harrypotter', async (req, res) => {
+  try {
+    const booksResponse = await axios.get('https://api.potterdb.com/v1/books');
+    if (!booksResponse.data || booksResponse.data.length === 0) {
+    //   return res.status(404).json({ error: 'Books are not available' });
+    throw new Error("Error while fetching books, books are not available")
+    }
+//Fetching the list of books and select the first book
+    const firstBook = booksResponse.data.data[0]; // Select the first book
+    console.log(`First Book: ${firstBook.attributes.title}`);
+
+    //Fetching the chapters for that book
+    const chaptersResponse = await axios.get(`https://api.potterdb.com/v1/books/${firstBook.id}/chapters`);
+    
+    if (!chaptersResponse.data || !chaptersResponse.data.data || chaptersResponse.data.data.length === 0) {
+    throw new Error("chapters are not available for the book")
+    }
+
+    const chapters = chaptersResponse.data.data;
+    const lastChapter = chapters[chapters.length - 1]; // Select the last chapter
+
+    console.log(`Last Chapter Title: ${lastChapter.attributes.title}`); //  print the “summary” value of the last chapter to the console.
+
+    //Send the response
+    return res.json({
+      book: firstBook.attributes.title,
+      lastChapterSummary: lastChapter.attributes.summary,
+    });
+
+  } catch (error) {
+    res.status(400).send(`${error}`)
+  }
+});
+
+// Start the server
+app.listen(PORT, () => {
+  console.log(`Server is running on http://localhost:${PORT}`);
+});
